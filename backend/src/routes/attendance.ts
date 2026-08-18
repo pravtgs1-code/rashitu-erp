@@ -43,6 +43,33 @@ router.post("/students/bulk", requireRole(...CAN_MARK_STUDENT_ATT), ah(async (re
   res.status(201).json({ marked: results.length, records: results });
 }));
 
+// QR Code Attendance: scan a student's QR (encodes "STUDENT:<id>") to mark present for today.
+router.post("/students/qr-mark", requireRole(...CAN_MARK_STUDENT_ATT), ah(async (req: AuthRequest, res) => {
+  const { qrText, date } = req.body || {};
+  if (!qrText) return res.status(400).json({ error: "qrText is required" });
+  const studentId = String(qrText).replace(/^STUDENT:/, "");
+  const [student] = await db.select().from(schema.students).where(eq(schema.students.id, studentId));
+  if (!student || student.tenantId !== req.user!.tenantId) return res.status(404).json({ error: "Student not found for this QR code" });
+  const d = date || new Date().toISOString().slice(0, 10);
+  const [existing] = await db
+    .select()
+    .from(schema.attendanceStudent)
+    .where(and(eq(schema.attendanceStudent.studentId, student.id), eq(schema.attendanceStudent.date, d)));
+  if (existing) {
+    const [updated] = await db
+      .update(schema.attendanceStudent)
+      .set({ status: "PRESENT", markedById: req.user!.userId })
+      .where(eq(schema.attendanceStudent.id, existing.id))
+      .returning();
+    return res.json({ student, attendance: updated });
+  }
+  const [created] = await db
+    .insert(schema.attendanceStudent)
+    .values({ tenantId: req.user!.tenantId, studentId: student.id, sectionId: student.sectionId, date: d, status: "PRESENT", markedById: req.user!.userId })
+    .returning();
+  res.status(201).json({ student, attendance: created });
+}));
+
 router.get("/students", ah(async (req: AuthRequest, res) => {
   const { sectionId, date, studentId } = req.query;
   let rows = await db.select().from(schema.attendanceStudent).where(eq(schema.attendanceStudent.tenantId, req.user!.tenantId));

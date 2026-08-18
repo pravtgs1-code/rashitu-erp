@@ -370,6 +370,86 @@ export const studentTransportAssignments = pgTable("student_transport_assignment
   monthlyFee: real("monthly_fee"),
 });
 
+// ---------------- FRONT OFFICE ----------------
+export const visitors = pgTable("visitors", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  purpose: text("purpose").notNull(), // Admission Enquiry/Meeting/Delivery/Vendor/Interview/Other
+  toMeet: text("to_meet"),
+  photoUrl: text("photo_url"),
+  idProofUrl: text("id_proof_url"),
+  checkIn: text("check_in").notNull().$defaultFn(() => new Date().toISOString()),
+  checkOut: text("check_out"),
+  remarks: text("remarks"),
+  createdAt: createdAt(),
+});
+
+export const enquiries = pgTable("enquiries", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  type: text("type").notNull().default("ADMISSION"), // GENERAL/ADMISSION
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  classInterested: text("class_interested"),
+  subject: text("subject"), // for GENERAL enquiries: what the enquiry is about
+  source: text("source"), // Walk-in/Phone Call/Referral/Online/Other
+  status: text("status").notNull().default("NEW"), // NEW/FOLLOW_UP/CONVERTED/CLOSED
+  followUpDate: text("follow_up_date"),
+  notes: text("notes"),
+  createdAt: createdAt(),
+});
+
+export const gatePasses = pgTable("gate_passes", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  personType: text("person_type").notNull(), // STUDENT/STAFF
+  personName: text("person_name").notNull(),
+  studentId: text("student_id").references(() => students.id),
+  staffId: text("staff_id").references(() => staff.id),
+  reason: text("reason").notNull(),
+  exitTime: text("exit_time").notNull().$defaultFn(() => new Date().toISOString()),
+  returnTime: text("return_time"),
+  approvedBy: text("approved_by"),
+  status: text("status").notNull().default("OUT"), // OUT/RETURNED
+  createdAt: createdAt(),
+});
+
+// ---------------- ACCOUNTS MANAGEMENT (school-level, separate from student fees) ----------------
+export const vendors = pgTable("vendors", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  name: text("name").notNull(),
+  category: text("category"),
+  phone: text("phone"),
+  address: text("address"),
+});
+
+export const bankAccounts = pgTable("bank_accounts", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  bankName: text("bank_name").notNull(),
+  accountNo: text("account_no").notNull(),
+  ifsc: text("ifsc"),
+  branch: text("branch"),
+  openingBalance: real("opening_balance").notNull().default(0),
+});
+
+export const accountsTransactions = pgTable("accounts_transactions", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  type: text("type").notNull(), // EXPENSE/INCOME/DEPOSIT/WITHDRAW
+  category: text("category"),
+  amount: real("amount").notNull(),
+  date: text("date").notNull().$defaultFn(() => new Date().toISOString().slice(0, 10)),
+  vendorId: text("vendor_id").references(() => vendors.id),
+  bankAccountId: text("bank_account_id").references(() => bankAccounts.id),
+  remarks: text("remarks"),
+  createdAt: createdAt(),
+});
+
 // ---------------- LIBRARY ----------------
 export const books = pgTable("books", {
   id: id(),
@@ -381,6 +461,19 @@ export const books = pgTable("books", {
   copiesAvailable: integer("copies_available").notNull().default(1),
 });
 
+// ---------------- MESSAGING ----------------
+export const messageLogs = pgTable("message_logs", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  channel: text("channel").notNull().default("SMS"), // SMS/APP
+  recipientType: text("recipient_type").notNull(), // STUDENT/STAFF/ALL_PARENTS/ALL_STAFF
+  recipientId: text("recipient_id"),
+  recipientName: text("recipient_name"),
+  message: text("message").notNull(),
+  sentById: text("sent_by_id"),
+  createdAt: createdAt(),
+});
+
 // ---------------- STORE / LAB INVENTORY ----------------
 export const inventoryItems = pgTable("inventory_items", {
   id: id(),
@@ -390,4 +483,70 @@ export const inventoryItems = pgTable("inventory_items", {
   quantity: integer("quantity").notNull().default(0),
   unit: text("unit"),
   reorderLevel: integer("reorder_level").default(0),
+});
+
+export const stockTransactions = pgTable("stock_transactions", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  itemId: text("item_id").notNull().references(() => inventoryItems.id),
+  type: text("type").notNull(), // ENTRY/SALE
+  quantity: integer("quantity").notNull(),
+  party: text("party"), // vendor for ENTRY, buyer for SALE
+  rate: real("rate"),
+  remarks: text("remarks"),
+  date: text("date").notNull().$defaultFn(() => new Date().toISOString().slice(0, 10)),
+  createdAt: createdAt(),
+});
+
+export const bookIssues = pgTable("book_issues", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  bookId: text("book_id").notNull().references(() => books.id),
+  personType: text("person_type").notNull(), // STUDENT/STAFF
+  studentId: text("student_id").references(() => students.id),
+  staffId: text("staff_id").references(() => staff.id),
+  personName: text("person_name").notNull(),
+  issueDate: text("issue_date").notNull().$defaultFn(() => new Date().toISOString().slice(0, 10)),
+  dueDate: text("due_date"),
+  returnDate: text("return_date"),
+  status: text("status").notNull().default("ISSUED"), // ISSUED/RETURNED
+  createdAt: createdAt(),
+});
+
+// ---------------- MASTERS (generic settings/lookups) ----------------
+// category examples: ACADEMIC_SESSION, STAFF_DESIGNATION, EXAM_NAME, EXAM_GROUP,
+// PERIOD, HOMEWORK_TYPE, HOUSE, STREAM, FEE_PARTICULAR, FEE_SLAB, FEE_DISCOUNT
+export const masterItems = pgTable("master_items", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  category: text("category").notNull(),
+  name: text("name").notNull(),
+  value1: text("value1"), // e.g. amount / start time / percentage
+  value2: text("value2"), // e.g. end time / type
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: createdAt(),
+});
+
+// ---------------- PAYROLL ----------------
+export const payrollHeads = pgTable("payroll_heads", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  type: text("type").notNull(), // ALLOWANCE/DEDUCTION
+  name: text("name").notNull(),
+  amount: real("amount").notNull().default(0),
+});
+
+export const salaryPayments = pgTable("salary_payments", {
+  id: id(),
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  staffId: text("staff_id").notNull().references(() => staff.id),
+  month: text("month").notNull(), // e.g. "2026-08"
+  basic: real("basic").notNull().default(0),
+  allowances: real("allowances").notNull().default(0),
+  deductions: real("deductions").notNull().default(0),
+  netPay: real("net_pay").notNull().default(0),
+  status: text("status").notNull().default("PENDING"), // PENDING/PAID
+  paidOn: text("paid_on"),
+  remarks: text("remarks"),
+  createdAt: createdAt(),
 });

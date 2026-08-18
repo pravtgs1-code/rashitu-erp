@@ -66,6 +66,14 @@ export const staff = pgTable("staff", {
   photoUrl: text("photo_url"),
   bloodGroup: text("blood_group"),
   salary: real("salary"),
+  maritalStatus: text("marital_status"),
+  emergencyContactName: text("emergency_contact_name"),
+  emergencyContactPhone: text("emergency_contact_phone"),
+  aadharNo: text("aadhar_no"),
+  panNo: text("pan_no"),
+  educationJson: text("education_json"), // JSON array: [{ degree, institution, year }]
+  bankJson: text("bank_json"), // JSON object: { bankName, accountNo, ifsc, branch }
+  documentsJson: text("documents_json"), // JSON array: [{ type, name, dataUrl }]
   isActive: boolean("is_active").notNull().default(true),
   createdAt: createdAt(),
 }, (t) => ({
@@ -126,6 +134,10 @@ export const students = pgTable("students", {
   admissionDate: text("admission_date").notNull(),
   previousSchool: text("previous_school"),
   photoUrl: text("photo_url"),
+  fatherPhotoUrl: text("father_photo_url"),
+  motherPhotoUrl: text("mother_photo_url"),
+  familyPhotoUrl: text("family_photo_url"),
+  documentsJson: text("documents_json"), // JSON array: [{ type, name, dataUrl }]
   religion: text("religion"),
   category: text("category"),
   aadharNo: text("aadhar_no"),

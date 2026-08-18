@@ -17,6 +17,7 @@ router.post("/", requireRole(...CAN_MANAGE_STUDENTS), ah(async (req: AuthRequest
   const {
     srNo, admissionNo, rollNo, name, dob, gender, bloodGroup, classId, sectionId,
     admissionDate, previousSchool, photoUrl, religion, category, aadharNo,
+    fatherPhotoUrl, motherPhotoUrl, familyPhotoUrl, documentsJson,
     guardian, // { fatherName, motherName, guardianName, relation, occupation, phone, altPhone, email, address, annualIncome }
     createLogins, // boolean - also create student + parent login accounts
   } = req.body || {};
@@ -62,6 +63,7 @@ router.post("/", requireRole(...CAN_MANAGE_STUDENTS), ah(async (req: AuthRequest
     .values({
       tenantId, userId: studentUserId, srNo, admissionNo, rollNo, name, dob, gender, bloodGroup,
       classId, sectionId, admissionDate, previousSchool, photoUrl, religion, category, aadharNo,
+      fatherPhotoUrl, motherPhotoUrl, familyPhotoUrl, documentsJson,
     })
     .returning();
 
@@ -113,7 +115,7 @@ router.get("/:id", ah(async (req: AuthRequest, res) => {
 router.patch("/:id", requireRole(...CAN_MANAGE_STUDENTS), ah(async (req: AuthRequest, res) => {
   const [student] = await db.select().from(schema.students).where(eq(schema.students.id, req.params.id));
   if (!student || student.tenantId !== req.user!.tenantId) return res.status(404).json({ error: "Not found" });
-  const allowed = ["rollNo", "name", "classId", "sectionId", "bloodGroup", "photoUrl", "isActive", "category", "religion"];
+  const allowed = ["rollNo", "name", "classId", "sectionId", "bloodGroup", "photoUrl", "isActive", "category", "religion", "fatherPhotoUrl", "motherPhotoUrl", "familyPhotoUrl", "documentsJson", "aadharNo", "previousSchool"];
   const updates: Record<string, any> = {};
   for (const k of allowed) if (k in (req.body || {})) updates[k] = req.body[k];
   const [updated] = await db.update(schema.students).set(updates).where(eq(schema.students.id, req.params.id)).returning();

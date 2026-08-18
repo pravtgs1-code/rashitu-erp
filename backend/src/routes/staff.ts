@@ -30,6 +30,8 @@ router.post("/", requireRole(...MANAGEMENT_ROLES), ah(async (req: AuthRequest, r
   const {
     employeeCode, name, department, designation, qualification, dateOfJoining, dob,
     gender, contactNumber, email, address, photoUrl, bloodGroup, salary,
+    maritalStatus, emergencyContactName, emergencyContactPhone, aadharNo, panNo,
+    educationJson, bankJson, documentsJson,
   } = req.body || {};
 
   if (!employeeCode || !name || !department || !designation || !dateOfJoining) {
@@ -49,6 +51,8 @@ router.post("/", requireRole(...MANAGEMENT_ROLES), ah(async (req: AuthRequest, r
     .values({
       tenantId, userId: user.id, employeeCode, name, department, designation, qualification,
       dateOfJoining, dob, gender, contactNumber, email, address, photoUrl, bloodGroup, salary,
+      maritalStatus, emergencyContactName, emergencyContactPhone, aadharNo, panNo,
+      educationJson, bankJson, documentsJson,
     })
     .returning();
 
@@ -74,7 +78,7 @@ router.get("/:id", ah(async (req: AuthRequest, res) => {
 router.patch("/:id", requireRole(...MANAGEMENT_ROLES), ah(async (req: AuthRequest, res) => {
   const [row] = await db.select().from(schema.staff).where(eq(schema.staff.id, req.params.id));
   if (!row || row.tenantId !== req.user!.tenantId) return res.status(404).json({ error: "Not found" });
-  const allowed = ["designation", "qualification", "contactNumber", "email", "address", "photoUrl", "salary", "isActive"];
+  const allowed = ["designation", "qualification", "contactNumber", "email", "address", "photoUrl", "salary", "isActive", "maritalStatus", "emergencyContactName", "emergencyContactPhone", "aadharNo", "panNo", "educationJson", "bankJson", "documentsJson", "bloodGroup"];
   const updates: Record<string, any> = {};
   for (const k of allowed) if (k in (req.body || {})) updates[k] = req.body[k];
   const [updated] = await db.update(schema.staff).set(updates).where(eq(schema.staff.id, req.params.id)).returning();

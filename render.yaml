@@ -1,0 +1,21 @@
+# Render Blueprint - deploys the Rasitu ERP backend as a free Node web service.
+# Usage: push this repo to GitHub, then in Render: New -> Blueprint -> pick this repo.
+# You will be prompted to paste your Supabase DATABASE_URL as an environment variable.
+services:
+  - type: web
+    name: rasitu-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    # All data lives in Supabase Postgres (not on Render's disk), so schema push +
+    # demo seeding only need to run once per deploy, in the build step. Both seed
+    # scripts are idempotent (safe to re-run) if you redeploy later.
+    buildCommand: npm install && (echo y | npx drizzle-kit push) && npm run seed && npm run seed:demo-school
+    startCommand: npx tsx src/server.ts
+    envVars:
+      - key: DATABASE_URL
+        sync: false # paste your Supabase connection string in the Render dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_VERSION
+        value: 20.11.0

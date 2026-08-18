@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+:root {
+  --brand-primary: #0F172A;
+  --brand-secondary: #2563EB;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  background: #f4f6fb;
+}
